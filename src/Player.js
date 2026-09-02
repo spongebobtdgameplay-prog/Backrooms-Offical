@@ -10,6 +10,8 @@ export class PlayerController {
     this.Pitch = 0
     this.TargetYaw = 0
     this.TargetPitch = 0
+    this.MouseDeltaX = 0
+    this.MouseDeltaY = 0
     this.Roll = 0
     this.Bob = 0
     this.BobTime = 0
@@ -19,6 +21,7 @@ export class PlayerController {
     this.Stamina = 1
     this.Keys = new Set()
     this.Locked = false
+    this.Modal = false
     this.Forward = new THREE.Vector3()
     this.Right = new THREE.Vector3()
     this.Move = new THREE.Vector3()
@@ -26,24 +29,47 @@ export class PlayerController {
   }
 
   SetupInput() {
-    window.addEventListener("keydown", Event => this.Keys.add(Event.code))
-    window.addEventListener("keyup", Event => this.Keys.delete(Event.code))
-    window.addEventListener("blur", () => this.Keys.clear())
+    window.addEventListener("keydown", Event => {
+      if (!this.IsMovementKey(Event.code)) return
+      this.Keys.add(Event.code)
+    }, { passive: true })
+
+    window.addEventListener("keyup", Event => {
+      if (!this.IsMovementKey(Event.code)) return
+      this.Keys.delete(Event.code)
+    }, { passive: true })
+
+    window.addEventListener("blur", () => {
+      this.Keys.clear()
+      this.MouseDeltaX = 0
+      this.MouseDeltaY = 0
+    })
 
     document.addEventListener("pointerlockchange", () => {
       this.Locked = document.pointerLockElement === this.DomElement
+      this.MouseDeltaX = 0
+      this.MouseDeltaY = 0
       window.dispatchEvent(new CustomEvent("gamepointerlock", { detail: this.Locked }))
     })
 
-    window.addEventListener("mousemove", Event => {
+    document.addEventListener("mousemove", Event => {
       if (!this.Locked) return
-      this.TargetYaw -= Event.movementX * 0.00175
-      this.TargetPitch -= Event.movementY * 0.00165
-      this.TargetPitch = Math.max(-1.45, Math.min(1.45, this.TargetPitch))
-    })
+      this.MouseDeltaX += Event.movementX
+      this.MouseDeltaY += Event.movementY
+    }, { capture: true, passive: true })
+  }
+
+  IsMovementKey(Code) {
+    return Code === "KeyW" ||
+      Code === "KeyA" ||
+      Code === "KeyS" ||
+      Code === "KeyD" ||
+      Code === "ShiftLeft" ||
+      Code === "ShiftRight"
   }
 
   Lock() {
+    if (document.pointerLockElement === this.DomElement) return
     const Result = this.DomElement.requestPointerLock()
     if (Result && typeof Result.catch === "function") Result.catch(() => {})
   }
@@ -54,15 +80,28 @@ export class PlayerController {
     this.Camera.position.copy(this.Position)
   }
 
-  Update(Delta) {
-    const LookBlend = 1 - Math.exp(-Delta * 24)
+  UpdateLook(Delta) {
+    if (this.Locked) {
+      this.TargetYaw -= this.MouseDeltaX * 0.00175
+      this.TargetPitch -= this.MouseDeltaY * 0.00165
+      this.TargetPitch = Math.max(-1.45, Math.min(1.45, this.TargetPitch))
+    }
+
+    this.MouseDeltaX = 0
+    this.MouseDeltaY = 0
+
+    const LookBlend = 1 - Math.exp(-Delta * 28)
     this.Yaw += (this.TargetYaw - this.Yaw) * LookBlend
     this.Pitch += (this.TargetPitch - this.Pitch) * LookBlend
+  }
 
+  UpdateMovement(Delta) {
     const ForwardInput = (this.Keys.has("KeyW") ? 1 : 0) - (this.Keys.has("KeyS") ? 1 : 0)
     const SideInput = (this.Keys.has("KeyD") ? 1 : 0) - (this.Keys.has("KeyA") ? 1 : 0)
     const Moving = ForwardInput !== 0 || SideInput !== 0
-    const WantsSprint = this.Keys.has("ShiftLeft") && ForwardInput > 0 && this.Stamina > 0.03
+    const WantsSprint = (this.Keys.has("ShiftLeft") || this.Keys.has("ShiftRight")) &&
+      ForwardInput > 0 &&
+      this.Stamina > 0.03
     const Speed = WantsSprint ? this.SprintSpeed : this.WalkSpeed
 
     if (WantsSprint && Moving) this.Stamina = Math.max(0, this.Stamina - Delta * 0.18)
@@ -90,11 +129,14 @@ export class PlayerController {
 
     const TargetFov = WantsSprint && Moving ? 76 : 73
     const NewFov = this.Camera.fov + (TargetFov - this.Camera.fov) * (1 - Math.exp(-Delta * 8))
+
     if (Math.abs(NewFov - this.Camera.fov) > 0.002) {
       this.Camera.fov = NewFov
       this.Camera.updateProjectionMatrix()
     }
+  }
 
+  UpdateCameraTransform() {
     this.Camera.position.set(this.Position.x, this.Position.y + this.Bob, this.Position.z)
     this.Camera.rotation.order = "YXZ"
     this.Camera.rotation.y = this.Yaw
@@ -102,9 +144,16 @@ export class PlayerController {
     this.Camera.rotation.z = this.Roll
   }
 
+  Update(Delta) {
+    this.UpdateLook(Delta)
+    this.UpdateMovement(Delta)
+    this.UpdateCameraTransform()
+  }
+
   TryMove(DeltaX, DeltaZ) {
     const NextX = this.Position.x + DeltaX
     const NextZ = this.Position.z + DeltaZ
+
     if (!this.Collides(NextX, NextZ)) {
       this.Position.x = NextX
       this.Position.z = NextZ
@@ -117,8 +166,10 @@ export class PlayerController {
       const ClosestZ = Math.max(Box.MinZ, Math.min(Z, Box.MaxZ))
       const DeltaX = X - ClosestX
       const DeltaZ = Z - ClosestZ
+
       if (DeltaX * DeltaX + DeltaZ * DeltaZ < this.Radius * this.Radius) return true
     }
+
     return false
   }
 }
