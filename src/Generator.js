@@ -13,8 +13,13 @@ export class BackroomsGenerator {
     this.OpenCells = []
     this.Cells = []
     this.LightPositions = []
+    this.LightProfiles = []
     this.ActiveLights = []
     this.LastLightAssignment = -1
+    this.ShadowLight = null
+    this.ShadowTarget = null
+    this.ShadowLightIndex = -1
+    this.ShadowUpdatePending = false
     this.Group = new THREE.Group()
     this.Scene.add(this.Group)
     this.RandomState = this.Seed || 1
@@ -150,11 +155,13 @@ export class BackroomsGenerator {
     const Floor = new THREE.Mesh(new THREE.PlaneGeometry(Width, Depth), FloorMaterial)
     Floor.rotation.x = -Math.PI / 2
     Floor.position.set(Width / 2 - this.CellSize / 2, 0, Depth / 2 - this.CellSize / 2)
+    Floor.receiveShadow = true
     this.Group.add(Floor)
 
     const Ceiling = new THREE.Mesh(new THREE.PlaneGeometry(Width, Depth), CeilingMaterial)
     Ceiling.rotation.x = Math.PI / 2
     Ceiling.position.set(Width / 2 - this.CellSize / 2, this.WallHeight, Depth / 2 - this.CellSize / 2)
+    Ceiling.receiveShadow = true
     this.Group.add(Ceiling)
 
     const HorizontalWalls = []
@@ -177,6 +184,14 @@ export class BackroomsGenerator {
           const OffsetX = (this.Random() - 0.5) * 2.15
           const OffsetZ = (this.Random() - 0.5) * 2.15
           this.LightPositions.push(new THREE.Vector3(CenterX + OffsetX, this.WallHeight - 0.2, CenterZ + OffsetZ))
+          this.LightProfiles.push({
+            BaseIntensity: 1.45 + this.Random() * 0.75,
+            FlickerSpeed: 20 + this.Random() * 22,
+            FlickerStrength: 0.015 + this.Random() * 0.055,
+            Faulty: this.Random() < 0.14,
+            Rotation: this.Random() > 0.5 ? 0 : Math.PI / 2,
+            PanelBrightness: 0.78 + this.Random() * 0.22
+          })
         }
       }
     }
@@ -186,6 +201,7 @@ export class BackroomsGenerator {
     this.CreateColumnInstances(WallMaterial)
     this.CreateFixtureInstances()
     this.CreateLightPool()
+    this.CreateShadowLight()
   }
 
   QueueWall(Target, X, Z, SizeX, SizeZ) {
@@ -212,6 +228,8 @@ export class BackroomsGenerator {
     }
     HorizontalMesh.instanceMatrix.needsUpdate = true
     HorizontalMesh.computeBoundingSphere()
+    HorizontalMesh.castShadow = true
+    HorizontalMesh.receiveShadow = true
     this.Group.add(HorizontalMesh)
 
     const VerticalMesh = new THREE.InstancedMesh(VerticalGeometry, Material, VerticalWalls.length)
@@ -222,6 +240,8 @@ export class BackroomsGenerator {
     }
     VerticalMesh.instanceMatrix.needsUpdate = true
     VerticalMesh.computeBoundingSphere()
+    VerticalMesh.castShadow = true
+    VerticalMesh.receiveShadow = true
     this.Group.add(VerticalMesh)
   }
 
@@ -287,6 +307,8 @@ export class BackroomsGenerator {
 
     Columns.instanceMatrix.needsUpdate = true
     Columns.computeBoundingSphere()
+    Columns.castShadow = true
+    Columns.receiveShadow = true
     this.Group.add(Columns)
   }
 
@@ -298,19 +320,27 @@ export class BackroomsGenerator {
     const Frames = new THREE.InstancedMesh(FrameGeometry, FrameMaterial, this.LightPositions.length)
     const Panels = new THREE.InstancedMesh(PanelGeometry, PanelMaterial, this.LightPositions.length)
     const Dummy = new THREE.Object3D()
+    const PanelColor = new THREE.Color()
 
     for (let I = 0; I < this.LightPositions.length; I += 1) {
+      const Profile = this.LightProfiles[I]
       Dummy.position.set(this.LightPositions[I].x, this.WallHeight - 0.055, this.LightPositions[I].z)
+      Dummy.rotation.set(0, Profile.Rotation, 0)
       Dummy.updateMatrix()
       Frames.setMatrixAt(I, Dummy.matrix)
 
       Dummy.position.y = this.WallHeight - 0.082
       Dummy.updateMatrix()
       Panels.setMatrixAt(I, Dummy.matrix)
+
+      const Brightness = Profile.PanelBrightness
+      PanelColor.setRGB(Brightness, Brightness * 0.965, Brightness * 0.74)
+      Panels.setColorAt(I, PanelColor)
     }
 
     Frames.instanceMatrix.needsUpdate = true
     Panels.instanceMatrix.needsUpdate = true
+    if (Panels.instanceColor) Panels.instanceColor.needsUpdate = true
     Frames.computeBoundingSphere()
     Panels.computeBoundingSphere()
     this.Group.add(Frames, Panels)
@@ -321,7 +351,7 @@ export class BackroomsGenerator {
 
     for (let I = 0; I < LightCount; I += 1) {
       const Light = new THREE.PointLight(0xffeaa1, 0, 13, 2)
-      Light.userData.BaseIntensity = 2.0
+      Light.userData.ProfileIndex = -1
       Light.userData.FlickerOffset = this.Random() * 100
       Light.visible = false
       this.Group.add(Light)
@@ -357,6 +387,7 @@ export class BackroomsGenerator {
         if (BestIndex >= 0) {
           Used.add(BestIndex)
           Light.position.copy(this.LightPositions[BestIndex])
+          Light.userData.ProfileIndex = BestIndex
           Light.visible = BestDistance < 520
         } else {
           Light.visible = false
@@ -364,14 +395,79 @@ export class BackroomsGenerator {
       }
     }
 
+    this.UpdateShadowLight(ViewerPosition)
+
     for (const Light of this.ActiveLights) {
       if (!Light.visible) continue
 
-      const Pulse = Math.sin(Time * 2.35 + Light.userData.FlickerOffset)
-      const Glitch = Math.sin(Time * 35 + Light.userData.FlickerOffset * 2.4)
-      const Drop = Glitch < -0.985 ? 0.26 : 1
-      Light.intensity = Light.userData.BaseIntensity * (0.95 + Pulse * 0.018) * Drop
+      const ProfileIndex = Light.userData.ProfileIndex
+      if (ProfileIndex < 0) continue
+      const Profile = this.LightProfiles[ProfileIndex]
+      const Pulse = Math.sin(Time * Profile.FlickerSpeed + Light.userData.FlickerOffset)
+      const Glitch = Math.sin(Time * (Profile.FlickerSpeed * 1.73) + Light.userData.FlickerOffset * 2.4)
+      const Drop = Profile.Faulty && Glitch < -0.965 ? 0.28 : 1
+      Light.intensity = Profile.BaseIntensity * (0.96 + Pulse * Profile.FlickerStrength) * Drop
     }
+  }
+
+
+  CreateShadowLight() {
+    this.ShadowTarget = new THREE.Object3D()
+    this.Group.add(this.ShadowTarget)
+
+    const Light = new THREE.SpotLight(0xffe7a0, 2.7, 15, Math.PI / 3.25, 0.58, 1.8)
+    Light.castShadow = true
+    Light.visible = false
+    Light.target = this.ShadowTarget
+    Light.shadow.mapSize.set(512, 512)
+    Light.shadow.camera.near = 0.2
+    Light.shadow.camera.far = 15
+    Light.shadow.bias = -0.00035
+    Light.shadow.normalBias = 0.035
+    this.Group.add(Light)
+    this.ShadowLight = Light
+  }
+
+  UpdateShadowLight(ViewerPosition) {
+    if (!this.ShadowLight || this.LightPositions.length === 0) return
+
+    let BestIndex = -1
+    let BestDistance = Infinity
+
+    for (let I = 0; I < this.LightPositions.length; I += 1) {
+      const Position = this.LightPositions[I]
+      const DeltaX = Position.x - ViewerPosition.x
+      const DeltaZ = Position.z - ViewerPosition.z
+      const Distance = DeltaX * DeltaX + DeltaZ * DeltaZ
+
+      if (Distance < BestDistance) {
+        BestDistance = Distance
+        BestIndex = I
+      }
+    }
+
+    if (BestIndex < 0) return
+
+    const Profile = this.LightProfiles[BestIndex]
+    this.ShadowLight.intensity = Profile.BaseIntensity * 1.35
+    this.ShadowLight.visible = BestDistance < 210
+
+    if (BestIndex === this.ShadowLightIndex) return
+
+    this.ShadowLightIndex = BestIndex
+    const Position = this.LightPositions[BestIndex]
+    this.ShadowLight.position.copy(Position)
+    this.ShadowLight.position.y = this.WallHeight - 0.16
+    this.ShadowTarget.position.set(Position.x, 0.08, Position.z)
+    this.ShadowTarget.updateMatrixWorld()
+    this.ShadowLight.updateMatrixWorld()
+    this.ShadowUpdatePending = true
+  }
+
+  ConsumeShadowUpdate() {
+    if (!this.ShadowUpdatePending) return false
+    this.ShadowUpdatePending = false
+    return true
   }
 
   CreateWallpaperTexture() {
