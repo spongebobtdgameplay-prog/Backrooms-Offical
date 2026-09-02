@@ -52,11 +52,16 @@ export class PlayerController {
       window.dispatchEvent(new CustomEvent("gamepointerlock", { detail: this.Locked }))
     })
 
-    document.addEventListener("mousemove", Event => {
+    const CaptureLook = Event => {
       if (!this.Locked) return
-      this.MouseDeltaX += Event.movementX
-      this.MouseDeltaY += Event.movementY
-    }, { capture: true, passive: true })
+      const MovementX = Number.isFinite(Event.movementX) ? Event.movementX : 0
+      const MovementY = Number.isFinite(Event.movementY) ? Event.movementY : 0
+      this.MouseDeltaX += MovementX
+      this.MouseDeltaY += MovementY
+    }
+
+    document.addEventListener("pointerrawupdate", CaptureLook, { capture: true, passive: true })
+    document.addEventListener("mousemove", CaptureLook, { capture: true, passive: true })
   }
 
   IsMovementKey(Code) {
@@ -70,8 +75,23 @@ export class PlayerController {
 
   Lock() {
     if (document.pointerLockElement === this.DomElement) return
-    const Result = this.DomElement.requestPointerLock()
-    if (Result && typeof Result.catch === "function") Result.catch(() => {})
+
+    try {
+      const Result = this.DomElement.requestPointerLock({ unadjustedMovement: true })
+      if (Result && typeof Result.catch === "function") {
+        Result.catch(() => {
+          try {
+            const Fallback = this.DomElement.requestPointerLock()
+            if (Fallback && typeof Fallback.catch === "function") Fallback.catch(() => {})
+          } catch {}
+        })
+      }
+    } catch {
+      try {
+        const Fallback = this.DomElement.requestPointerLock()
+        if (Fallback && typeof Fallback.catch === "function") Fallback.catch(() => {})
+      } catch {}
+    }
   }
 
   SetPosition(Position) {
