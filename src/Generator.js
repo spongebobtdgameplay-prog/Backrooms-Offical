@@ -203,10 +203,10 @@ export class BackroomsGenerator {
   }
 
   CreateLightPool() {
-    const LightCount = 7
+    const LightCount = 4
     for (let I = 0; I < LightCount; I += 1) {
       const Light = new THREE.PointLight(0xffec8c, 0, 11, 2)
-      Light.userData.BaseIntensity = 3.6
+      Light.userData.BaseIntensity = 4.2
       Light.userData.FlickerOffset = this.Random() * 100
       Light.visible = false
       this.Group.add(Light)
@@ -268,7 +268,7 @@ export class BackroomsGenerator {
       Context.fillRect(X, 0, 7, 128)
     }
 
-    for (let I = 0; I < 700; I += 1) {
+    for (let I = 0; I < 320; I += 1) {
       const Shade = Math.floor(this.Random() * 35)
       Context.fillStyle = `rgba(${80 + Shade}, ${74 + Shade}, ${36 + Shade}, 0.055)`
       Context.fillRect(this.Random() * 128, this.Random() * 128, 1, 1)
@@ -290,7 +290,7 @@ export class BackroomsGenerator {
     Context.fillStyle = "#5e5939"
     Context.fillRect(0, 0, 128, 128)
 
-    for (let I = 0; I < 2600; I += 1) {
+    for (let I = 0; I < 760; I += 1) {
       const Value = Math.floor(68 + this.Random() * 52)
       Context.fillStyle = `rgba(${Value}, ${Value - 7}, ${Math.max(20, Value - 38)}, 0.22)`
       Context.fillRect(this.Random() * 128, this.Random() * 128, 1, 1)
