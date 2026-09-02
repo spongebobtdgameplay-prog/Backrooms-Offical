@@ -205,6 +205,7 @@ export function StartGame() {
   Hud.classList.remove("Hidden")
   LastTime = performance.now()
   requestAnimationFrame(Update)
+  CursorNotice.classList.remove("Hidden")
   Player.Lock()
 }
 
