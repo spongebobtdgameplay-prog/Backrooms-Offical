@@ -1,4 +1,5 @@
-const GameVersion = "0.1.2"
+const GameVersion = "0.1.3"
+const CacheToken = new URL(import.meta.url).searchParams.get("cb") || Date.now().toString(36)
 const StartButton = document.getElementById("StartButton")
 const StartButtonText = document.getElementById("StartButtonText")
 const LoadStatus = document.getElementById("LoadStatus")
@@ -7,6 +8,21 @@ const HudVersion = document.getElementById("HudVersion")
 
 MenuVersion.textContent = `V${GameVersion}`
 HudVersion.textContent = `V${GameVersion}`
+
+async function VerifyBuild() {
+  try {
+    const Response = await fetch(`./version.json?cb=${Date.now()}`, { cache: "no-store" })
+    if (!Response.ok) return
+    const Latest = await Response.json()
+    if (Latest.version !== GameVersion) {
+      const Url = new URL(location.href)
+      Url.searchParams.set("build", `${Latest.version}-${Date.now()}`)
+      location.replace(Url.toString())
+    }
+  } catch {}
+}
+
+VerifyBuild()
 
 let Loading = false
 
@@ -18,7 +34,7 @@ StartButton.addEventListener("click", async () => {
   LoadStatus.textContent = "STARTING 3D ENGINE…"
 
   try {
-    const Game = await import("./main.js")
+    const Game = await import(`./main.js?cb=${CacheToken}`)
     Game.StartGame()
   } catch (Error) {
     console.error(Error)
