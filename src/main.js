@@ -26,14 +26,16 @@ const Camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, 0.05, 7
 const Renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, stencil: false, powerPreference: "high-performance", precision: "mediump" })
 Renderer.setSize(innerWidth, innerHeight)
 Renderer.setPixelRatio(Math.min(devicePixelRatio, 1))
-Renderer.shadowMap.enabled = false
+Renderer.shadowMap.enabled = true
+Renderer.shadowMap.type = THREE.PCFSoftShadowMap
+Renderer.shadowMap.autoUpdate = false
 Renderer.outputColorSpace = THREE.SRGBColorSpace
 Renderer.toneMapping = THREE.NoToneMapping
 Renderer.toneMappingExposure = 1.0
 document.getElementById("Game").prepend(Renderer.domElement)
 
-const Ambient = new THREE.AmbientLight(0xffefad, 1.0)
-const Hemisphere = new THREE.HemisphereLight(0xfff4c2, 0x9d8e57, 0.68)
+const Ambient = new THREE.AmbientLight(0xffefad, 0.76)
+const Hemisphere = new THREE.HemisphereLight(0xfff4c2, 0x9d8e57, 0.5)
 Scene.add(Ambient, Hemisphere)
 
 const State = new GameState()
@@ -217,6 +219,7 @@ function Update(Time) {
     Player.Update(Delta)
     UpdateInteraction()
     Generator.UpdateLights(Time / 1000, Player.Position)
+    if (Generator.ConsumeShadowUpdate()) Renderer.shadowMap.needsUpdate = true
 
     if (State.EntityReleased) {
       const Caught = Hunter.Update(Delta, Player.Position)
