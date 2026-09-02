@@ -5,12 +5,14 @@ const [
   { BackroomsGenerator },
   { PlayerController },
   { Entity },
-  { GameState }
+  { GameState },
+  { AudioSystem }
 ] = await Promise.all([
   import(`./Generator.js?cb=${CacheToken}`),
   import(`./Player.js?cb=${CacheToken}`),
   import(`./Entity.js?cb=${CacheToken}`),
-  import(`./GameState.js?cb=${CacheToken}`)
+  import(`./GameState.js?cb=${CacheToken}`),
+  import(`./Audio.js?cb=${CacheToken}`)
 ])
 
 const StartScreen = document.getElementById("StartScreen")
@@ -43,11 +45,12 @@ Renderer.toneMapping = THREE.NoToneMapping
 Renderer.toneMappingExposure = 1.0
 document.getElementById("Game").prepend(Renderer.domElement)
 
-const Ambient = new THREE.AmbientLight(0xffefad, 0.76)
-const Hemisphere = new THREE.HemisphereLight(0xfff4c2, 0x9d8e57, 0.5)
+const Ambient = new THREE.AmbientLight(0xffefad, 0.68)
+const Hemisphere = new THREE.HemisphereLight(0xfff4c2, 0x9d8e57, 0.42)
 Scene.add(Ambient, Hemisphere)
 
 const State = new GameState()
+const Audio = new AudioSystem()
 const Generator = new BackroomsGenerator(Scene, Math.floor(Math.random() * 0xffffffff))
 const World = Generator.Build()
 const Player = new PlayerController(Camera, Renderer.domElement, World.Colliders)
@@ -123,13 +126,16 @@ ExitGroup.position.copy(ExitPosition)
 Scene.add(ExitGroup)
 
 const EntityPosition = PickOpenCell(50)
-const Hunter = new Entity(Scene, EntityPosition)
+const Hunter = new Entity(Scene, EntityPosition, World, {
+  OnShift: () => Audio.PlayShift()
+})
 
 let NearestInteractable = null
 let MessageTimer = 0
 let LastTime = performance.now()
 let FrameCounter = 0
 let FpsTimer = 0
+let ShadowRefreshTimer = 0
 
 function ShowMessage(Text, Duration = 1.7) {
   Message.textContent = Text
@@ -187,6 +193,11 @@ function Interact() {
 
 function EndGame(Escaped) {
   State.Ended = true
+  if (Escaped) Audio.Stop()
+  else {
+    Audio.PlayDeath()
+    setTimeout(() => Audio.Stop(), 900)
+  }
   document.exitPointerLock()
   Hud.classList.add("Hidden")
   EndScreen.classList.remove("Hidden")
@@ -207,7 +218,10 @@ window.addEventListener("keydown", Event => {
 })
 
 Renderer.domElement.addEventListener("click", () => {
-  if (State.Started && !State.Ended && !Player.Locked) Player.Lock()
+  if (State.Started && !State.Ended) {
+    Audio.Start()
+    if (!Player.Locked) Player.Lock()
+  }
 })
 
 RestartButton.addEventListener("click", () => location.reload())
@@ -223,6 +237,7 @@ export function StartGame() {
   StartScreen.classList.add("Hidden")
   Hud.classList.remove("Hidden")
   LastTime = performance.now()
+  Audio.Start()
   requestAnimationFrame(Update)
   CursorNotice.classList.remove("Hidden")
   Player.Lock()
@@ -238,10 +253,19 @@ function Update(Time) {
     Generator.UpdateLights(Time / 1000, Player.Position)
     if (Generator.ConsumeShadowUpdate()) Renderer.shadowMap.needsUpdate = true
 
+    let EntityDistance = Infinity
     if (State.EntityReleased) {
       const Caught = Hunter.Update(Delta, Player.Position)
+      EntityDistance = Hunter.GetDistance(Player.Position)
+      ShadowRefreshTimer -= Delta
+      if (ShadowRefreshTimer <= 0) {
+        ShadowRefreshTimer = 0.12
+        Renderer.shadowMap.needsUpdate = true
+      }
       if (Caught) EndGame(false)
     }
+
+    Audio.Update(EntityDistance)
 
     StaminaBar.style.transform = `scaleX(${Player.Stamina})`
 
