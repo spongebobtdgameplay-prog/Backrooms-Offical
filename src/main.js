@@ -5,10 +5,11 @@ import { Entity } from "./Entity.js"
 import { GameState } from "./GameState.js"
 
 const StartScreen = document.getElementById("StartScreen")
-const StartButton = document.getElementById("StartButton")
 const Hud = document.getElementById("Hud")
 const Objective = document.getElementById("Objective")
 const StaminaBar = document.getElementById("StaminaBar")
+const Fps = document.getElementById("Fps")
+const CursorNotice = document.getElementById("CursorNotice")
 const Prompt = document.getElementById("Prompt")
 const Message = document.getElementById("Message")
 const EndScreen = document.getElementById("EndScreen")
@@ -19,16 +20,16 @@ const RestartButton = document.getElementById("RestartButton")
 
 const Scene = new THREE.Scene()
 Scene.background = new THREE.Color(0x11100a)
-Scene.fog = new THREE.FogExp2(0x11100a, 0.022)
+Scene.fog = new THREE.FogExp2(0x11100a, 0.028)
 
-const Camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.05, 120)
-const Renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" })
+const Camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, 0.05, 76)
+const Renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, stencil: false, powerPreference: "high-performance", precision: "mediump" })
 Renderer.setSize(innerWidth, innerHeight)
 Renderer.setPixelRatio(Math.min(devicePixelRatio, 1))
 Renderer.shadowMap.enabled = false
 Renderer.outputColorSpace = THREE.SRGBColorSpace
 Renderer.toneMapping = THREE.ACESFilmicToneMapping
-Renderer.toneMappingExposure = 0.8
+Renderer.toneMappingExposure = 0.86
 document.getElementById("Game").prepend(Renderer.domElement)
 
 const Ambient = new THREE.AmbientLight(0x766f43, 0.58)
@@ -74,14 +75,9 @@ function CreateBreaker(Position) {
   Switch.position.set(0, 1.35, -0.14)
   Group.add(Switch)
 
-  const Glow = new THREE.PointLight(0xff543b, 1.5, 3)
-  Glow.position.set(0, 1.35, -0.35)
-  Group.add(Glow)
-
   Group.position.copy(Position)
   Group.userData.Active = false
   Group.userData.Switch = Switch
-  Group.userData.Glow = Glow
   Scene.add(Group)
   Breakers.push(Group)
 }
@@ -104,9 +100,6 @@ const ExitDoor = new THREE.Mesh(
 ExitDoor.position.set(0, 1.18, -0.2)
 ExitGroup.add(ExitDoor)
 
-const ExitLight = new THREE.PointLight(0x75ff86, 0, 5)
-ExitLight.position.set(0, 2.5, -0.45)
-ExitGroup.add(ExitLight)
 ExitGroup.position.copy(ExitPosition)
 Scene.add(ExitGroup)
 
@@ -116,6 +109,8 @@ const Hunter = new Entity(Scene, EntityPosition)
 let NearestInteractable = null
 let MessageTimer = 0
 let LastTime = performance.now()
+let FrameCounter = 0
+let FpsTimer = 0
 
 function ShowMessage(Text, Duration = 1.7) {
   Message.textContent = Text
@@ -153,16 +148,14 @@ function Interact() {
     NearestInteractable.userData.Active = true
     NearestInteractable.userData.Switch.material.color.setHex(0x3bb44c)
     NearestInteractable.userData.Switch.material.emissive.setHex(0x073d10)
-    NearestInteractable.userData.Glow.color.setHex(0x5dff73)
     State.ActivateBreaker()
-    Objective.textContent = `Breakers: ${State.BreakersActive} / ${State.BreakersRequired}`
+    Objective.textContent = `RESTORE POWER · ${State.BreakersActive}/${State.BreakersRequired}`
 
     if (State.BreakersActive === 1) {
       Hunter.Release()
       ShowMessage("SOMETHING HEARD THAT")
     } else if (State.CanExit()) {
       ExitDoor.material.emissive.setHex(0x163d17)
-      ExitLight.intensity = 4
       ShowMessage("EXIT POWER RESTORED")
     } else {
       ShowMessage("BREAKER ONLINE")
@@ -198,14 +191,22 @@ Renderer.domElement.addEventListener("click", () => {
   if (State.Started && !State.Ended && !Player.Locked) Player.Lock()
 })
 
-StartButton.addEventListener("click", () => {
+RestartButton.addEventListener("click", () => location.reload())
+
+window.addEventListener("gamepointerlock", Event => {
+  if (!State.Started || State.Ended) return
+  CursorNotice.classList.toggle("Hidden", Event.detail)
+})
+
+export function StartGame() {
+  if (State.Started) return
   State.Started = true
   StartScreen.classList.add("Hidden")
   Hud.classList.remove("Hidden")
+  LastTime = performance.now()
+  requestAnimationFrame(Update)
   Player.Lock()
-})
-
-RestartButton.addEventListener("click", () => location.reload())
+}
 
 function Update(Time) {
   const Delta = Math.min((Time - LastTime) / 1000, 0.05)
@@ -223,6 +224,14 @@ function Update(Time) {
 
     StaminaBar.style.transform = `scaleX(${Player.Stamina})`
 
+    FrameCounter += 1
+    FpsTimer += Delta
+    if (FpsTimer >= 0.5) {
+      Fps.textContent = `${Math.round(FrameCounter / FpsTimer)} FPS`
+      FrameCounter = 0
+      FpsTimer = 0
+    }
+
     if (MessageTimer > 0) {
       MessageTimer -= Delta
       if (MessageTimer <= 0) Message.style.opacity = "0"
@@ -232,8 +241,6 @@ function Update(Time) {
   Renderer.render(Scene, Camera)
   requestAnimationFrame(Update)
 }
-
-requestAnimationFrame(Update)
 
 window.addEventListener("resize", () => {
   Camera.aspect = innerWidth / innerHeight
