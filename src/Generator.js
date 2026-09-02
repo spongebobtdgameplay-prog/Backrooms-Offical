@@ -12,6 +12,9 @@ export class BackroomsGenerator {
     this.Colliders = []
     this.OpenCells = []
     this.Cells = []
+    this.LightPositions = []
+    this.ActiveLights = []
+    this.LastLightAssignment = -1
     this.Group = new THREE.Group()
     this.Scene.add(this.Group)
     this.RandomState = this.Seed || 1
@@ -108,20 +111,22 @@ export class BackroomsGenerator {
   BuildEnvironment() {
     const Width = this.Columns * this.CellSize
     const Depth = this.Rows * this.CellSize
-    const FloorMaterial = new THREE.MeshStandardMaterial({ color: 0x665f39, roughness: 1 })
-    const CeilingMaterial = new THREE.MeshStandardMaterial({ color: 0xb0a968, roughness: 0.95 })
-    const WallMaterial = new THREE.MeshStandardMaterial({ color: 0xafa55d, roughness: 0.92 })
+    const FloorMaterial = new THREE.MeshLambertMaterial({ color: 0x665f39, map: this.CreateCarpetTexture() })
+    const CeilingMaterial = new THREE.MeshLambertMaterial({ color: 0xb0a968, map: this.CreateCeilingTexture() })
+    const WallMaterial = new THREE.MeshLambertMaterial({ color: 0xafa55d, map: this.CreateWallpaperTexture() })
 
     const Floor = new THREE.Mesh(new THREE.PlaneGeometry(Width, Depth), FloorMaterial)
     Floor.rotation.x = -Math.PI / 2
     Floor.position.set(Width / 2 - this.CellSize / 2, 0, Depth / 2 - this.CellSize / 2)
-    Floor.receiveShadow = true
     this.Group.add(Floor)
 
     const Ceiling = new THREE.Mesh(new THREE.PlaneGeometry(Width, Depth), CeilingMaterial)
     Ceiling.rotation.x = Math.PI / 2
     Ceiling.position.set(Width / 2 - this.CellSize / 2, this.WallHeight, Depth / 2 - this.CellSize / 2)
     this.Group.add(Ceiling)
+
+    const HorizontalWalls = []
+    const VerticalWalls = []
 
     for (let Z = 0; Z < this.Rows; Z += 1) {
       for (let X = 0; X < this.Columns; X += 1) {
@@ -130,22 +135,22 @@ export class BackroomsGenerator {
         const CenterZ = Z * this.CellSize
         this.OpenCells.push(new THREE.Vector3(CenterX, 0, CenterZ))
 
-        if (Cell.Walls.N) this.CreateWall(CenterX, CenterZ - this.CellSize / 2, this.CellSize + this.WallThickness, this.WallThickness, WallMaterial)
-        if (Cell.Walls.W) this.CreateWall(CenterX - this.CellSize / 2, CenterZ, this.WallThickness, this.CellSize + this.WallThickness, WallMaterial)
-        if (Z === this.Rows - 1 && Cell.Walls.S) this.CreateWall(CenterX, CenterZ + this.CellSize / 2, this.CellSize + this.WallThickness, this.WallThickness, WallMaterial)
-        if (X === this.Columns - 1 && Cell.Walls.E) this.CreateWall(CenterX + this.CellSize / 2, CenterZ, this.WallThickness, this.CellSize + this.WallThickness, WallMaterial)
+        if (Cell.Walls.N) this.QueueWall(HorizontalWalls, CenterX, CenterZ - this.CellSize / 2, this.CellSize + this.WallThickness, this.WallThickness)
+        if (Cell.Walls.W) this.QueueWall(VerticalWalls, CenterX - this.CellSize / 2, CenterZ, this.WallThickness, this.CellSize + this.WallThickness)
+        if (Z === this.Rows - 1 && Cell.Walls.S) this.QueueWall(HorizontalWalls, CenterX, CenterZ + this.CellSize / 2, this.CellSize + this.WallThickness, this.WallThickness)
+        if (X === this.Columns - 1 && Cell.Walls.E) this.QueueWall(VerticalWalls, CenterX + this.CellSize / 2, CenterZ, this.WallThickness, this.CellSize + this.WallThickness)
 
-        if ((X + Z) % 2 === 0 && this.Random() > 0.18) this.CreateLight(CenterX, CenterZ)
+        if ((X + Z) % 2 === 0 && this.Random() > 0.18) this.LightPositions.push(new THREE.Vector3(CenterX, this.WallHeight - 0.2, CenterZ))
       }
     }
+
+    this.CreateWallInstances(HorizontalWalls, VerticalWalls, WallMaterial)
+    this.CreateFixtureInstances()
+    this.CreateLightPool()
   }
 
-  CreateWall(X, Z, SizeX, SizeZ, Material) {
-    const Mesh = new THREE.Mesh(new THREE.BoxGeometry(SizeX, this.WallHeight, SizeZ), Material)
-    Mesh.position.set(X, this.WallHeight / 2, Z)
-    Mesh.castShadow = true
-    Mesh.receiveShadow = true
-    this.Group.add(Mesh)
+  QueueWall(Target, X, Z, SizeX, SizeZ) {
+    Target.push({ X, Z })
     this.Colliders.push({
       MinX: X - SizeX / 2,
       MaxX: X + SizeX / 2,
@@ -154,28 +159,167 @@ export class BackroomsGenerator {
     })
   }
 
-  CreateLight(X, Z) {
-    const Fixture = new THREE.Mesh(
-      new THREE.BoxGeometry(2.7, 0.05, 0.34),
-      new THREE.MeshBasicMaterial({ color: 0xfff6b0 })
-    )
-    Fixture.position.set(X, this.WallHeight - 0.06, Z)
-    this.Group.add(Fixture)
+  CreateWallInstances(HorizontalWalls, VerticalWalls, Material) {
+    const HorizontalGeometry = new THREE.BoxGeometry(this.CellSize + this.WallThickness, this.WallHeight, this.WallThickness)
+    const VerticalGeometry = new THREE.BoxGeometry(this.WallThickness, this.WallHeight, this.CellSize + this.WallThickness)
+    const Dummy = new THREE.Object3D()
 
-    const Light = new THREE.PointLight(0xffef9a, 5.2, 12, 2.1)
-    Light.position.set(X, this.WallHeight - 0.2, Z)
-    this.Group.add(Light)
+    const HorizontalMesh = new THREE.InstancedMesh(HorizontalGeometry, Material, HorizontalWalls.length)
+    for (let I = 0; I < HorizontalWalls.length; I += 1) {
+      Dummy.position.set(HorizontalWalls[I].X, this.WallHeight / 2, HorizontalWalls[I].Z)
+      Dummy.updateMatrix()
+      HorizontalMesh.setMatrixAt(I, Dummy.matrix)
+    }
+    HorizontalMesh.instanceMatrix.needsUpdate = true
+    HorizontalMesh.computeBoundingSphere()
+    this.Group.add(HorizontalMesh)
 
-    Light.userData.BaseIntensity = Light.intensity
-    Light.userData.FlickerOffset = this.Random() * 100
+    const VerticalMesh = new THREE.InstancedMesh(VerticalGeometry, Material, VerticalWalls.length)
+    for (let I = 0; I < VerticalWalls.length; I += 1) {
+      Dummy.position.set(VerticalWalls[I].X, this.WallHeight / 2, VerticalWalls[I].Z)
+      Dummy.updateMatrix()
+      VerticalMesh.setMatrixAt(I, Dummy.matrix)
+    }
+    VerticalMesh.instanceMatrix.needsUpdate = true
+    VerticalMesh.computeBoundingSphere()
+    this.Group.add(VerticalMesh)
   }
 
-  UpdateLights(Time) {
-    for (const Child of this.Group.children) {
-      if (!Child.isPointLight) continue
-      const Pulse = Math.sin(Time * 2.4 + Child.userData.FlickerOffset)
-      const Glitch = Math.sin(Time * 31 + Child.userData.FlickerOffset * 3)
-      Child.intensity = Child.userData.BaseIntensity * (0.92 + Pulse * 0.035 + Math.max(0, Glitch - 0.95) * 0.9)
+  CreateFixtureInstances() {
+    const Geometry = new THREE.BoxGeometry(2.7, 0.05, 0.34)
+    const Material = new THREE.MeshBasicMaterial({ color: 0xfff4a8 })
+    const Fixtures = new THREE.InstancedMesh(Geometry, Material, this.LightPositions.length)
+    const Dummy = new THREE.Object3D()
+
+    for (let I = 0; I < this.LightPositions.length; I += 1) {
+      Dummy.position.set(this.LightPositions[I].x, this.WallHeight - 0.06, this.LightPositions[I].z)
+      Dummy.updateMatrix()
+      Fixtures.setMatrixAt(I, Dummy.matrix)
     }
+
+    Fixtures.instanceMatrix.needsUpdate = true
+    Fixtures.computeBoundingSphere()
+    this.Group.add(Fixtures)
+  }
+
+  CreateLightPool() {
+    const LightCount = 7
+    for (let I = 0; I < LightCount; I += 1) {
+      const Light = new THREE.PointLight(0xffec8c, 0, 11, 2)
+      Light.userData.BaseIntensity = 3.6
+      Light.userData.FlickerOffset = this.Random() * 100
+      Light.visible = false
+      this.Group.add(Light)
+      this.ActiveLights.push(Light)
+    }
+  }
+
+  UpdateLights(Time, ViewerPosition) {
+    if (!ViewerPosition || this.LightPositions.length === 0) return
+
+    if (this.LastLightAssignment < 0 || Time - this.LastLightAssignment >= 0.12) {
+      this.LastLightAssignment = Time
+      const Used = new Set()
+
+      for (const Light of this.ActiveLights) {
+        let BestIndex = -1
+        let BestDistance = Infinity
+
+        for (let I = 0; I < this.LightPositions.length; I += 1) {
+          if (Used.has(I)) continue
+          const Position = this.LightPositions[I]
+          const DeltaX = Position.x - ViewerPosition.x
+          const DeltaZ = Position.z - ViewerPosition.z
+          const Distance = DeltaX * DeltaX + DeltaZ * DeltaZ
+          if (Distance < BestDistance) {
+            BestDistance = Distance
+            BestIndex = I
+          }
+        }
+
+        if (BestIndex >= 0) {
+          Used.add(BestIndex)
+          Light.position.copy(this.LightPositions[BestIndex])
+          Light.visible = BestDistance < 420
+        } else {
+          Light.visible = false
+        }
+      }
+    }
+
+    for (const Light of this.ActiveLights) {
+      if (!Light.visible) continue
+      const Pulse = Math.sin(Time * 2.1 + Light.userData.FlickerOffset)
+      const Glitch = Math.sin(Time * 28 + Light.userData.FlickerOffset * 2.7)
+      Light.intensity = Light.userData.BaseIntensity * (0.92 + Pulse * 0.025 + Math.max(0, Glitch - 0.97) * 1.4)
+    }
+  }
+
+  CreateWallpaperTexture() {
+    const Canvas = document.createElement("canvas")
+    Canvas.width = 128
+    Canvas.height = 128
+    const Context = Canvas.getContext("2d")
+    Context.fillStyle = "#aaa15e"
+    Context.fillRect(0, 0, 128, 128)
+
+    for (let X = 0; X < 128; X += 16) {
+      Context.fillStyle = X % 32 === 0 ? "rgba(97, 89, 42, 0.12)" : "rgba(255, 248, 176, 0.08)"
+      Context.fillRect(X, 0, 7, 128)
+    }
+
+    for (let I = 0; I < 700; I += 1) {
+      const Shade = Math.floor(this.Random() * 35)
+      Context.fillStyle = `rgba(${80 + Shade}, ${74 + Shade}, ${36 + Shade}, 0.055)`
+      Context.fillRect(this.Random() * 128, this.Random() * 128, 1, 1)
+    }
+
+    const Texture = new THREE.CanvasTexture(Canvas)
+    Texture.wrapS = THREE.RepeatWrapping
+    Texture.wrapT = THREE.RepeatWrapping
+    Texture.repeat.set(2, 1)
+    Texture.colorSpace = THREE.SRGBColorSpace
+    return Texture
+  }
+
+  CreateCarpetTexture() {
+    const Canvas = document.createElement("canvas")
+    Canvas.width = 128
+    Canvas.height = 128
+    const Context = Canvas.getContext("2d")
+    Context.fillStyle = "#5e5939"
+    Context.fillRect(0, 0, 128, 128)
+
+    for (let I = 0; I < 2600; I += 1) {
+      const Value = Math.floor(68 + this.Random() * 52)
+      Context.fillStyle = `rgba(${Value}, ${Value - 7}, ${Math.max(20, Value - 38)}, 0.22)`
+      Context.fillRect(this.Random() * 128, this.Random() * 128, 1, 1)
+    }
+
+    const Texture = new THREE.CanvasTexture(Canvas)
+    Texture.wrapS = THREE.RepeatWrapping
+    Texture.wrapT = THREE.RepeatWrapping
+    Texture.repeat.set(this.Columns * 1.5, this.Rows * 1.5)
+    Texture.colorSpace = THREE.SRGBColorSpace
+    return Texture
+  }
+
+  CreateCeilingTexture() {
+    const Canvas = document.createElement("canvas")
+    Canvas.width = 128
+    Canvas.height = 128
+    const Context = Canvas.getContext("2d")
+    Context.fillStyle = "#aaa567"
+    Context.fillRect(0, 0, 128, 128)
+    Context.strokeStyle = "rgba(70, 67, 38, 0.24)"
+    Context.lineWidth = 2
+    Context.strokeRect(1, 1, 126, 126)
+
+    const Texture = new THREE.CanvasTexture(Canvas)
+    Texture.wrapS = THREE.RepeatWrapping
+    Texture.wrapT = THREE.RepeatWrapping
+    Texture.repeat.set(this.Columns, this.Rows)
+    Texture.colorSpace = THREE.SRGBColorSpace
+    return Texture
   }
 }
