@@ -6,16 +6,19 @@ export class PlayerController {
     this.DomElement = DomElement
     this.Colliders = Colliders
     this.Position = new THREE.Vector3(0, 1.65, 0)
-    this.Velocity = new THREE.Vector3()
     this.Yaw = 0
     this.Pitch = 0
+    this.TargetYaw = 0
+    this.TargetPitch = 0
+    this.Roll = 0
+    this.Bob = 0
+    this.BobTime = 0
     this.Radius = 0.38
     this.WalkSpeed = 4.3
-    this.SprintSpeed = 7.0
+    this.SprintSpeed = 6.8
     this.Stamina = 1
     this.Keys = new Set()
     this.Locked = false
-    this.BobTime = 0
     this.Forward = new THREE.Vector3()
     this.Right = new THREE.Vector3()
     this.Move = new THREE.Vector3()
@@ -25,14 +28,18 @@ export class PlayerController {
   SetupInput() {
     window.addEventListener("keydown", Event => this.Keys.add(Event.code))
     window.addEventListener("keyup", Event => this.Keys.delete(Event.code))
+    window.addEventListener("blur", () => this.Keys.clear())
+
     document.addEventListener("pointerlockchange", () => {
       this.Locked = document.pointerLockElement === this.DomElement
+      window.dispatchEvent(new CustomEvent("gamepointerlock", { detail: this.Locked }))
     })
+
     window.addEventListener("mousemove", Event => {
       if (!this.Locked) return
-      this.Yaw -= Event.movementX * 0.0022
-      this.Pitch -= Event.movementY * 0.002
-      this.Pitch = Math.max(-1.47, Math.min(1.47, this.Pitch))
+      this.TargetYaw -= Event.movementX * 0.00175
+      this.TargetPitch -= Event.movementY * 0.00165
+      this.TargetPitch = Math.max(-1.45, Math.min(1.45, this.TargetPitch))
     })
   }
 
@@ -47,14 +54,18 @@ export class PlayerController {
   }
 
   Update(Delta) {
+    const LookBlend = 1 - Math.exp(-Delta * 24)
+    this.Yaw += (this.TargetYaw - this.Yaw) * LookBlend
+    this.Pitch += (this.TargetPitch - this.Pitch) * LookBlend
+
     const ForwardInput = (this.Keys.has("KeyW") ? 1 : 0) - (this.Keys.has("KeyS") ? 1 : 0)
     const SideInput = (this.Keys.has("KeyD") ? 1 : 0) - (this.Keys.has("KeyA") ? 1 : 0)
     const Moving = ForwardInput !== 0 || SideInput !== 0
     const WantsSprint = this.Keys.has("ShiftLeft") && ForwardInput > 0 && this.Stamina > 0.03
     const Speed = WantsSprint ? this.SprintSpeed : this.WalkSpeed
 
-    if (WantsSprint && Moving) this.Stamina = Math.max(0, this.Stamina - Delta * 0.19)
-    else this.Stamina = Math.min(1, this.Stamina + Delta * 0.12)
+    if (WantsSprint && Moving) this.Stamina = Math.max(0, this.Stamina - Delta * 0.18)
+    else this.Stamina = Math.min(1, this.Stamina + Delta * 0.13)
 
     this.Forward.set(-Math.sin(this.Yaw), 0, -Math.cos(this.Yaw))
     this.Right.set(Math.cos(this.Yaw), 0, -Math.sin(this.Yaw))
@@ -62,18 +73,32 @@ export class PlayerController {
     this.Move.addScaledVector(this.Forward, ForwardInput)
     this.Move.addScaledVector(this.Right, SideInput)
 
-    if (this.Move.lengthSq() > 0) this.Move.normalize().multiplyScalar(Speed * Delta)
+    if (this.Move.lengthSq() > 0) {
+      this.Move.normalize().multiplyScalar(Speed * Delta)
+      this.TryMove(this.Move.x, 0)
+      this.TryMove(0, this.Move.z)
+    }
 
-    this.TryMove(this.Move.x, 0)
-    this.TryMove(0, this.Move.z)
+    const MotionBlend = 1 - Math.exp(-Delta * 14)
+    if (Moving) this.BobTime += Delta * (WantsSprint ? 10.8 : 7.8)
 
-    if (Moving) this.BobTime += Delta * (WantsSprint ? 12 : 8)
-    const Bob = Moving ? Math.sin(this.BobTime) * 0.025 : 0
+    const TargetBob = Moving ? Math.sin(this.BobTime * 2) * (WantsSprint ? 0.026 : 0.018) : 0
+    const TargetRoll = Moving ? -SideInput * 0.012 + Math.sin(this.BobTime) * 0.004 : 0
+    this.Bob += (TargetBob - this.Bob) * MotionBlend
+    this.Roll += (TargetRoll - this.Roll) * MotionBlend
 
-    this.Camera.position.set(this.Position.x, this.Position.y + Bob, this.Position.z)
+    const TargetFov = WantsSprint && Moving ? 76 : 73
+    const NewFov = this.Camera.fov + (TargetFov - this.Camera.fov) * (1 - Math.exp(-Delta * 8))
+    if (Math.abs(NewFov - this.Camera.fov) > 0.002) {
+      this.Camera.fov = NewFov
+      this.Camera.updateProjectionMatrix()
+    }
+
+    this.Camera.position.set(this.Position.x, this.Position.y + this.Bob, this.Position.z)
     this.Camera.rotation.order = "YXZ"
     this.Camera.rotation.y = this.Yaw
     this.Camera.rotation.x = this.Pitch
+    this.Camera.rotation.z = this.Roll
   }
 
   TryMove(DeltaX, DeltaZ) {
@@ -89,9 +114,9 @@ export class PlayerController {
     for (const Box of this.Colliders) {
       const ClosestX = Math.max(Box.MinX, Math.min(X, Box.MaxX))
       const ClosestZ = Math.max(Box.MinZ, Math.min(Z, Box.MaxZ))
-      const Dx = X - ClosestX
-      const Dz = Z - ClosestZ
-      if (Dx * Dx + Dz * Dz < this.Radius * this.Radius) return true
+      const DeltaX = X - ClosestX
+      const DeltaZ = Z - ClosestZ
+      if (DeltaX * DeltaX + DeltaZ * DeltaZ < this.Radius * this.Radius) return true
     }
     return false
   }
