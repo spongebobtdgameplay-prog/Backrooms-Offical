@@ -1,0 +1,158 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #080806;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #f4efbd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+canvas {
+  display: block;
+}
+
+#Game {
+  position: fixed;
+  inset: 0;
+}
+
+#StartScreen,
+#EndScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(141, 126, 54, 0.08), rgba(0, 0, 0, 0.92)),
+    #090908;
+}
+
+.Panel {
+  width: min(620px, calc(100vw - 40px));
+  padding: 42px;
+  border: 1px solid rgba(255, 246, 171, 0.25);
+  background: rgba(15, 14, 9, 0.88);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.Panel h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(40px, 8vw, 76px);
+  letter-spacing: -4px;
+  line-height: 0.9;
+}
+
+.Panel p {
+  margin: 0 auto 24px;
+  max-width: 460px;
+  color: #c9c293;
+  line-height: 1.5;
+}
+
+.Eyebrow {
+  font-size: 12px;
+  letter-spacing: 7px;
+  color: #8b845d;
+}
+
+button {
+  border: 1px solid #d6cb7b;
+  padding: 14px 34px;
+  background: #cfc476;
+  color: #17150d;
+  font-weight: 800;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+.Controls {
+  margin-top: 22px;
+  color: #77715a;
+  font-size: 12px;
+}
+
+#Hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+#Objective {
+  position: absolute;
+  left: 22px;
+  top: 20px;
+  padding: 10px 14px;
+  border: 1px solid rgba(235, 226, 154, 0.18);
+  background: rgba(0, 0, 0, 0.42);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+#StaminaFrame {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  width: 210px;
+  height: 9px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#StaminaBar {
+  width: 100%;
+  height: 100%;
+  background: #d9d183;
+  transform-origin: left center;
+}
+
+#Prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%);
+  min-height: 24px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 6px #000;
+}
+
+#Crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 230, 0.8);
+}
+
+#Message {
+  position: absolute;
+  z-index: 6;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(16px, 3vw, 26px);
+  letter-spacing: 4px;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  text-shadow: 0 2px 10px #000;
+}
+
+.Hidden {
+  display: none !important;
+}

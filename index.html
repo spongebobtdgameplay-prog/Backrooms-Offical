@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Backrooms</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="Game">
+    <div id="StartScreen">
+      <div class="Panel">
+        <div class="Eyebrow">LEVEL 0</div>
+        <h1>THE BACKROOMS</h1>
+        <p>Find three breaker switches. Restore the exit. Do not let it find you.</p>
+        <button id="StartButton">ENTER</button>
+        <div class="Controls">WASD move · Shift sprint · Mouse look · E interact · Esc unlock mouse</div>
+      </div>
+    </div>
+
+    <div id="Hud" class="Hidden">
+      <div id="Objective">Breakers: 0 / 3</div>
+      <div id="StaminaFrame"><div id="StaminaBar"></div></div>
+      <div id="Prompt"></div>
+      <div id="Crosshair"></div>
+    </div>
+
+    <div id="Message"></div>
+
+    <div id="EndScreen" class="Hidden">
+      <div class="Panel">
+        <div class="Eyebrow" id="EndEyebrow">LEVEL 0</div>
+        <h1 id="EndTitle">YOU ESCAPED</h1>
+        <p id="EndText"></p>
+        <button id="RestartButton">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
