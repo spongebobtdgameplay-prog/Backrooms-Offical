@@ -30,8 +30,8 @@ const EndEyebrow = document.getElementById("EndEyebrow")
 const RestartButton = document.getElementById("RestartButton")
 
 const Scene = new THREE.Scene()
-Scene.background = new THREE.Color(0xb8ab69)
-Scene.fog = new THREE.Fog(0xb8ab69, 30, 74)
+Scene.background = new THREE.Color(0xb7b08b)
+Scene.fog = new THREE.Fog(0xb7b08b, 26, 72)
 
 const Camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, 0.05, 76)
 const Renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, stencil: false, powerPreference: "high-performance", precision: "mediump" })
@@ -45,8 +45,8 @@ Renderer.toneMapping = THREE.NoToneMapping
 Renderer.toneMappingExposure = 1.0
 document.getElementById("Game").prepend(Renderer.domElement)
 
-const Ambient = new THREE.AmbientLight(0xffefad, 0.68)
-const Hemisphere = new THREE.HemisphereLight(0xfff4c2, 0x9d8e57, 0.42)
+const Ambient = new THREE.AmbientLight(0xfff2cf, 0.46)
+const Hemisphere = new THREE.HemisphereLight(0xfff6dc, 0x625f50, 0.34)
 Scene.add(Ambient, Hemisphere)
 
 const State = new GameState()
