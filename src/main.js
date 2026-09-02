@@ -233,6 +233,12 @@ window.addEventListener("gamepointerlock", Event => {
 
 export function StartGame() {
   if (State.Started) return
+
+  const FocusedElement = document.activeElement
+  if (FocusedElement && typeof FocusedElement.blur === "function") FocusedElement.blur()
+
+  Renderer.domElement.tabIndex = -1
+  Renderer.domElement.dataset.modal = "false"
   State.Started = true
   StartScreen.classList.add("Hidden")
   Hud.classList.remove("Hidden")
