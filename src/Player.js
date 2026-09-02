@@ -16,6 +16,9 @@ export class PlayerController {
     this.Keys = new Set()
     this.Locked = false
     this.BobTime = 0
+    this.Forward = new THREE.Vector3()
+    this.Right = new THREE.Vector3()
+    this.Move = new THREE.Vector3()
     this.SetupInput()
   }
 
@@ -53,16 +56,16 @@ export class PlayerController {
     if (WantsSprint && Moving) this.Stamina = Math.max(0, this.Stamina - Delta * 0.19)
     else this.Stamina = Math.min(1, this.Stamina + Delta * 0.12)
 
-    const Forward = new THREE.Vector3(-Math.sin(this.Yaw), 0, -Math.cos(this.Yaw))
-    const Right = new THREE.Vector3(Math.cos(this.Yaw), 0, -Math.sin(this.Yaw))
-    const Move = new THREE.Vector3()
-    Move.addScaledVector(Forward, ForwardInput)
-    Move.addScaledVector(Right, SideInput)
+    this.Forward.set(-Math.sin(this.Yaw), 0, -Math.cos(this.Yaw))
+    this.Right.set(Math.cos(this.Yaw), 0, -Math.sin(this.Yaw))
+    this.Move.set(0, 0, 0)
+    this.Move.addScaledVector(this.Forward, ForwardInput)
+    this.Move.addScaledVector(this.Right, SideInput)
 
-    if (Move.lengthSq() > 0) Move.normalize().multiplyScalar(Speed * Delta)
+    if (this.Move.lengthSq() > 0) this.Move.normalize().multiplyScalar(Speed * Delta)
 
-    this.TryMove(Move.x, 0)
-    this.TryMove(0, Move.z)
+    this.TryMove(this.Move.x, 0)
+    this.TryMove(0, this.Move.z)
 
     if (Moving) this.BobTime += Delta * (WantsSprint ? 12 : 8)
     const Bob = Moving ? Math.sin(this.BobTime) * 0.025 : 0
