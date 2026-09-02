@@ -1,4 +1,4 @@
-const GameVersion = "0.1.1"
+const GameVersion = "0.1.2"
 const StartButton = document.getElementById("StartButton")
 const StartButtonText = document.getElementById("StartButtonText")
 const LoadStatus = document.getElementById("LoadStatus")
