@@ -1,6 +1,12 @@
+const GameVersion = "0.1.0"
 const StartButton = document.getElementById("StartButton")
 const StartButtonText = document.getElementById("StartButtonText")
 const LoadStatus = document.getElementById("LoadStatus")
+const MenuVersion = document.getElementById("MenuVersion")
+const HudVersion = document.getElementById("HudVersion")
+
+MenuVersion.textContent = `V${GameVersion}`
+HudVersion.textContent = `V${GameVersion}`
 
 let Loading = false
 
