@@ -44,7 +44,8 @@ export class PlayerController {
   }
 
   Lock() {
-    this.DomElement.requestPointerLock()
+    const Result = this.DomElement.requestPointerLock()
+    if (Result && typeof Result.catch === "function") Result.catch(() => {})
   }
 
   SetPosition(Position) {
