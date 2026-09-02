@@ -68,6 +68,8 @@ function CreateBreaker(Position) {
     new THREE.MeshStandardMaterial({ color: 0x393727, roughness: 0.8 })
   )
   Panel.position.y = 1.35
+  Panel.castShadow = true
+  Panel.receiveShadow = true
   Group.add(Panel)
 
   const Switch = new THREE.Mesh(
@@ -75,6 +77,8 @@ function CreateBreaker(Position) {
     new THREE.MeshStandardMaterial({ color: 0xb7402e, emissive: 0x3a0904, roughness: 0.7 })
   )
   Switch.position.set(0, 1.35, -0.14)
+  Switch.castShadow = true
+  Switch.receiveShadow = true
   Group.add(Switch)
 
   Group.position.copy(Position)
@@ -93,6 +97,8 @@ const ExitFrame = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: 0x25251c, roughness: 0.75 })
 )
 ExitFrame.position.y = 1.3
+ExitFrame.castShadow = true
+ExitFrame.receiveShadow = true
 ExitGroup.add(ExitFrame)
 
 const ExitDoor = new THREE.Mesh(
@@ -100,6 +106,8 @@ const ExitDoor = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: 0x87804e, emissive: 0x000000, roughness: 0.9 })
 )
 ExitDoor.position.set(0, 1.18, -0.2)
+ExitDoor.castShadow = true
+ExitDoor.receiveShadow = true
 ExitGroup.add(ExitDoor)
 
 ExitGroup.position.copy(ExitPosition)
