@@ -459,3 +459,24 @@ canvas {
   pointer-events: none;
   background: linear-gradient(180deg, rgba(255, 239, 151, 0.018), transparent 36%);
 }
+
+
+#MenuVersion {
+  opacity: 0.72;
+}
+
+#HudVersion {
+  position: absolute;
+  top: 40px;
+  right: 26px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(248, 239, 173, 0.34);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  #HudVersion {
+    right: 18px;
+  }
+}
