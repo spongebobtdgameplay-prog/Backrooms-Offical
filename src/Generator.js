@@ -116,19 +116,35 @@ export class BackroomsGenerator {
     const Width = this.Columns * this.CellSize
     const Depth = this.Rows * this.CellSize
 
-    const FloorMaterial = new THREE.MeshLambertMaterial({
-      color: 0xb3a46f,
-      map: this.CreateCarpetTexture()
+    const FloorTexture = this.CreateCarpetTexture()
+    const CeilingTexture = this.CreateCeilingTexture()
+    const WallTexture = this.CreateWallpaperTexture()
+
+    const FloorMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc2b37d,
+      map: FloorTexture,
+      roughness: 1,
+      metalness: 0,
+      emissive: 0x4d4728,
+      emissiveIntensity: 0.28
     })
 
-    const CeilingMaterial = new THREE.MeshLambertMaterial({
-      color: 0xd5cb8c,
-      map: this.CreateCeilingTexture()
+    const CeilingMaterial = new THREE.MeshStandardMaterial({
+      color: 0xe4dca8,
+      map: CeilingTexture,
+      roughness: 0.96,
+      metalness: 0,
+      emissive: 0x766d3a,
+      emissiveIntensity: 0.5
     })
 
-    const WallMaterial = new THREE.MeshLambertMaterial({
-      color: 0xe0d36f,
-      map: this.CreateWallpaperTexture()
+    const WallMaterial = new THREE.MeshStandardMaterial({
+      color: 0xeadc7e,
+      map: WallTexture,
+      roughness: 0.98,
+      metalness: 0,
+      emissive: 0x6d621e,
+      emissiveIntensity: 0.42
     })
 
     const Floor = new THREE.Mesh(new THREE.PlaneGeometry(Width, Depth), FloorMaterial)
@@ -210,7 +226,7 @@ export class BackroomsGenerator {
   }
 
   CreateTrimInstances(HorizontalWalls, VerticalWalls) {
-    const Material = new THREE.MeshLambertMaterial({ color: 0xd7c783 })
+    const Material = new THREE.MeshStandardMaterial({ color: 0xe7daa0, roughness: 1, emissive: 0x514a24, emissiveIntensity: 0.22 })
     const Dummy = new THREE.Object3D()
 
     const HorizontalGeometry = new THREE.BoxGeometry(this.CellSize + this.WallThickness + 0.04, 0.13, this.WallThickness + 0.035)
@@ -277,8 +293,8 @@ export class BackroomsGenerator {
   CreateFixtureInstances() {
     const FrameGeometry = new THREE.BoxGeometry(1.95, 0.045, 0.74)
     const PanelGeometry = new THREE.BoxGeometry(1.72, 0.025, 0.54)
-    const FrameMaterial = new THREE.MeshLambertMaterial({ color: 0xa89f69 })
-    const PanelMaterial = new THREE.MeshBasicMaterial({ color: 0xfff4b5 })
+    const FrameMaterial = new THREE.MeshStandardMaterial({ color: 0xbdb58b, roughness: 0.92, emissive: 0x4a452b, emissiveIntensity: 0.18 })
+    const PanelMaterial = new THREE.MeshBasicMaterial({ color: 0xfff7ca })
     const Frames = new THREE.InstancedMesh(FrameGeometry, FrameMaterial, this.LightPositions.length)
     const Panels = new THREE.InstancedMesh(PanelGeometry, PanelMaterial, this.LightPositions.length)
     const Dummy = new THREE.Object3D()
@@ -304,8 +320,8 @@ export class BackroomsGenerator {
     const LightCount = 4
 
     for (let I = 0; I < LightCount; I += 1) {
-      const Light = new THREE.PointLight(0xffe98f, 0, 12.5, 1.85)
-      Light.userData.BaseIntensity = 4.6
+      const Light = new THREE.PointLight(0xffeaa1, 0, 13, 2)
+      Light.userData.BaseIntensity = 2.0
       Light.userData.FlickerOffset = this.Random() * 100
       Light.visible = false
       this.Group.add(Light)
@@ -364,18 +380,18 @@ export class BackroomsGenerator {
     Canvas.height = 192
     const Context = Canvas.getContext("2d")
 
-    Context.fillStyle = "#d4c660"
+    Context.fillStyle = "#ded174"
     Context.fillRect(0, 0, Canvas.width, Canvas.height)
 
     for (let X = 0; X < Canvas.width; X += 24) {
-      Context.fillStyle = "rgba(93, 83, 35, 0.10)"
+      Context.fillStyle = "rgba(93, 83, 35, 0.055)"
       Context.fillRect(X, 0, 2, Canvas.height)
 
-      Context.fillStyle = "rgba(255, 247, 158, 0.10)"
+      Context.fillStyle = "rgba(255, 249, 180, 0.10)"
       Context.fillRect(X + 11, 0, 5, Canvas.height)
 
       for (let Y = 8; Y < Canvas.height; Y += 32) {
-        Context.strokeStyle = "rgba(91, 82, 34, 0.10)"
+        Context.strokeStyle = "rgba(91, 82, 34, 0.06)"
         Context.lineWidth = 1
         Context.beginPath()
         Context.moveTo(X + 7, Y)
@@ -383,7 +399,7 @@ export class BackroomsGenerator {
         Context.lineTo(X + 17, Y)
         Context.stroke()
 
-        Context.fillStyle = "rgba(108, 96, 39, 0.08)"
+        Context.fillStyle = "rgba(108, 96, 39, 0.05)"
         Context.fillRect(X + 11, Y + 8, 2, 8)
       }
     }
@@ -408,11 +424,11 @@ export class BackroomsGenerator {
     Canvas.height = 160
     const Context = Canvas.getContext("2d")
 
-    Context.fillStyle = "#8f8258"
+    Context.fillStyle = "#a29368"
     Context.fillRect(0, 0, Canvas.width, Canvas.height)
 
     for (let Y = 0; Y < Canvas.height; Y += 4) {
-      Context.fillStyle = Y % 8 === 0 ? "rgba(71, 61, 35, 0.10)" : "rgba(229, 211, 151, 0.055)"
+      Context.fillStyle = Y % 8 === 0 ? "rgba(71, 61, 35, 0.07)" : "rgba(235, 220, 165, 0.07)"
       Context.fillRect(0, Y, Canvas.width, 1)
     }
 
@@ -447,10 +463,10 @@ export class BackroomsGenerator {
     Canvas.height = 128
     const Context = Canvas.getContext("2d")
 
-    Context.fillStyle = "#d8d09b"
+    Context.fillStyle = "#ddd6a6"
     Context.fillRect(0, 0, 128, 128)
 
-    Context.strokeStyle = "rgba(86, 79, 48, 0.26)"
+    Context.strokeStyle = "rgba(86, 79, 48, 0.18)"
     Context.lineWidth = 3
     Context.strokeRect(1.5, 1.5, 125, 125)
 
