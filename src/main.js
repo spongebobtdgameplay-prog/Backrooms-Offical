@@ -24,16 +24,14 @@ Scene.fog = new THREE.FogExp2(0x11100a, 0.022)
 const Camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.05, 120)
 const Renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" })
 Renderer.setSize(innerWidth, innerHeight)
-Renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5))
-Renderer.shadowMap.enabled = true
-Renderer.shadowMap.type = THREE.PCFSoftShadowMap
+Renderer.setPixelRatio(Math.min(devicePixelRatio, 1))
+Renderer.shadowMap.enabled = false
 Renderer.outputColorSpace = THREE.SRGBColorSpace
 Renderer.toneMapping = THREE.ACESFilmicToneMapping
 Renderer.toneMappingExposure = 0.8
 document.getElementById("Game").prepend(Renderer.domElement)
 
-const Ambient = new THREE.AmbientLight(0x766f43, 0.42)
-Scene.add(Ambient)
+const Ambient = new THREE.AmbientLight(0x766f43, 0.58)\nconst Hemisphere = new THREE.HemisphereLight(0xcfc680, 0x2b2818, 0.32)\nScene.add(Ambient, Hemisphere)
 
 const State = new GameState()
 const Generator = new BackroomsGenerator(Scene, Math.floor(Math.random() * 0xffffffff))
@@ -214,7 +212,7 @@ function Update(Time) {
   if (State.Started && !State.Ended) {
     Player.Update(Delta)
     UpdateInteraction()
-    Generator.UpdateLights(Time / 1000)
+    Generator.UpdateLights(Time / 1000, Player.Position)
 
     if (State.EntityReleased) {
       const Caught = Hunter.Update(Delta, Player.Position)
@@ -239,5 +237,5 @@ window.addEventListener("resize", () => {
   Camera.aspect = innerWidth / innerHeight
   Camera.updateProjectionMatrix()
   Renderer.setSize(innerWidth, innerHeight)
-  Renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5))
+  Renderer.setPixelRatio(Math.min(devicePixelRatio, 1))
 })
