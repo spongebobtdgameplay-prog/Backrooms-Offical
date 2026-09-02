@@ -1,8 +1,17 @@
 import * as THREE from "three"
-import { BackroomsGenerator } from "./Generator.js"
-import { PlayerController } from "./Player.js"
-import { Entity } from "./Entity.js"
-import { GameState } from "./GameState.js"
+
+const CacheToken = new URL(import.meta.url).searchParams.get("cb") || Date.now().toString(36)
+const [
+  { BackroomsGenerator },
+  { PlayerController },
+  { Entity },
+  { GameState }
+] = await Promise.all([
+  import(`./Generator.js?cb=${CacheToken}`),
+  import(`./Player.js?cb=${CacheToken}`),
+  import(`./Entity.js?cb=${CacheToken}`),
+  import(`./GameState.js?cb=${CacheToken}`)
+])
 
 const StartScreen = document.getElementById("StartScreen")
 const Hud = document.getElementById("Hud")
