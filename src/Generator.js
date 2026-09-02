@@ -167,7 +167,7 @@ export class BackroomsGenerator {
 
     this.CreateWallInstances(HorizontalWalls, VerticalWalls, WallMaterial)
     this.CreateTrimInstances(HorizontalWalls, VerticalWalls)
-    this.CreateColumnInstances()
+    this.CreateColumnInstances(WallMaterial)
     this.CreateFixtureInstances()
     this.CreateLightPool()
   }
@@ -237,7 +237,7 @@ export class BackroomsGenerator {
     this.Group.add(VerticalBaseboards)
   }
 
-  CreateColumnInstances() {
+  CreateColumnInstances(Material) {
     const Positions = []
 
     for (let Z = 1; Z < this.Rows - 1; Z += 1) {
@@ -258,11 +258,6 @@ export class BackroomsGenerator {
     }
 
     if (Positions.length === 0) return
-
-    const Material = new THREE.MeshLambertMaterial({
-      color: 0xdbce73,
-      map: this.CreateWallpaperTexture()
-    })
 
     const Geometry = new THREE.BoxGeometry(0.52, this.WallHeight, 0.52)
     const Columns = new THREE.InstancedMesh(Geometry, Material, Positions.length)
