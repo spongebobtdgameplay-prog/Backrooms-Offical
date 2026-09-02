@@ -23,6 +23,7 @@ export class Entity {
     this.DesiredMove = new THREE.Vector3()
     this.LookTarget = new THREE.Vector3()
     this.PushResult = new THREE.Vector3()
+    this.CollisionProbe = new THREE.Vector3()
     this.Root = new THREE.Group()
     this.Root.name = "Level0Shapeshifter"
     this.Root.position.copy(this.Position)
@@ -347,8 +348,11 @@ export class Entity {
     this.Position.copy(Resolved.Position)
     this.Position.y = 0
 
+    this.CollisionProbe.copy(this.Position)
+    this.CollisionProbe.y = 1.08
+
     const Push = CollisionUtility.PushPointOutOfWorld(
-      this.Position,
+      this.CollisionProbe,
       this.Radius,
       this.World.Colliders,
       this.PushResult,
@@ -356,7 +360,8 @@ export class Entity {
     )
 
     if (Push.Hit) {
-      this.Position.copy(Push.Point)
+      this.Position.x = Push.Point.x
+      this.Position.z = Push.Point.z
       this.Position.y = 0
     }
 
