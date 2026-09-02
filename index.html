@@ -4,8 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#8d8446">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>The Backrooms — Level 0</title>
-  <link rel="stylesheet" href="./style.css">
+  <script>
+    window.BackroomsCacheToken = Date.now().toString(36)
+    const StyleLink = document.createElement("link")
+    StyleLink.rel = "stylesheet"
+    StyleLink.href = `./style.css?cb=${window.BackroomsCacheToken}`
+    document.head.appendChild(StyleLink)
+  </script>
   <script type="importmap">
   {
     "imports": {
@@ -20,7 +29,7 @@
       <div class="MenuNoise"></div>
       <div class="MenuTop">
         <span>THE BACKROOMS</span>
-        <span id="MenuVersion">V0.1.0</span>
+        <span id="MenuVersion">V0.1.3</span>
         <span>UNSTABLE SESSION</span>
       </div>
       <div class="MenuContent">
@@ -45,7 +54,7 @@
         <div id="Objective">RESTORE POWER · 0/3</div>
       </div>
       <div id="Fps">-- FPS</div>
-      <div id="HudVersion">V0.1.0</div>
+      <div id="HudVersion">V0.1.3</div>
       <div id="Prompt"></div>
       <div id="Crosshair"><i></i></div>
       <div id="StaminaHud">
@@ -67,6 +76,11 @@
     </div>
   </div>
 
-  <script type="module" src="./src/boot.js"></script>
+  <script>
+    const BootScript = document.createElement("script")
+    BootScript.type = "module"
+    BootScript.src = `./src/boot.js?cb=${window.BackroomsCacheToken}`
+    document.body.appendChild(BootScript)
+  </script>
 </body>
 </html>
