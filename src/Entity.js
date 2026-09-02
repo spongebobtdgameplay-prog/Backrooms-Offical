@@ -8,6 +8,7 @@ export class Entity {
     this.Speed = 2.15
     this.RepathTimer = 0
     this.TargetPoint = StartPosition.clone()
+    this.Direction = new THREE.Vector3()
     this.Mesh = this.CreateMesh()
     this.Mesh.position.copy(this.Position)
     this.Scene.add(this.Mesh)
@@ -41,13 +42,13 @@ export class Entity {
   Update(Delta, PlayerPosition) {
     if (!this.Active) return false
 
-    const Direction = new THREE.Vector3().subVectors(PlayerPosition, this.Position)
-    Direction.y = 0
-    const Distance = Direction.length()
+    this.Direction.subVectors(PlayerPosition, this.Position)
+    this.Direction.y = 0
+    const Distance = this.Direction.length()
 
     if (Distance > 0.001) {
-      Direction.normalize()
-      this.Position.addScaledVector(Direction, this.Speed * Delta)
+      this.Direction.normalize()
+      this.Position.addScaledVector(this.Direction, this.Speed * Delta)
     }
 
     this.Mesh.position.copy(this.Position)
