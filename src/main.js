@@ -31,7 +31,9 @@ Renderer.toneMapping = THREE.ACESFilmicToneMapping
 Renderer.toneMappingExposure = 0.8
 document.getElementById("Game").prepend(Renderer.domElement)
 
-const Ambient = new THREE.AmbientLight(0x766f43, 0.58)\nconst Hemisphere = new THREE.HemisphereLight(0xcfc680, 0x2b2818, 0.32)\nScene.add(Ambient, Hemisphere)
+const Ambient = new THREE.AmbientLight(0x766f43, 0.58)
+const Hemisphere = new THREE.HemisphereLight(0xcfc680, 0x2b2818, 0.32)
+Scene.add(Ambient, Hemisphere)
 
 const State = new GameState()
 const Generator = new BackroomsGenerator(Scene, Math.floor(Math.random() * 0xffffffff))
