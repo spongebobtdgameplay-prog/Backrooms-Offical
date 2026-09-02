@@ -38,7 +38,8 @@ export class BackroomsGenerator {
       OpenCells: this.OpenCells,
       CellSize: this.CellSize,
       Rows: this.Rows,
-      Columns: this.Columns
+      Columns: this.Columns,
+      Cells: this.Cells
     }
   }
 
@@ -185,7 +186,7 @@ export class BackroomsGenerator {
           const OffsetZ = (this.Random() - 0.5) * 2.15
           this.LightPositions.push(new THREE.Vector3(CenterX + OffsetX, this.WallHeight - 0.2, CenterZ + OffsetZ))
           this.LightProfiles.push({
-            BaseIntensity: 1.45 + this.Random() * 0.75,
+            BaseIntensity: 1.65 + this.Random() * 0.9,
             FlickerSpeed: 20 + this.Random() * 22,
             FlickerStrength: 0.015 + this.Random() * 0.055,
             Faulty: this.Random() < 0.14,
@@ -207,11 +208,22 @@ export class BackroomsGenerator {
   QueueWall(Target, X, Z, SizeX, SizeZ) {
     Target.push({ X, Z })
 
+    const MinX = X - SizeX / 2
+    const MaxX = X + SizeX / 2
+    const MinZ = Z - SizeZ / 2
+    const MaxZ = Z + SizeZ / 2
+
     this.Colliders.push({
-      MinX: X - SizeX / 2,
-      MaxX: X + SizeX / 2,
-      MinZ: Z - SizeZ / 2,
-      MaxZ: Z + SizeZ / 2
+      MinX,
+      MaxX,
+      MinZ,
+      MaxZ,
+      Type: "Wall",
+      PrecisePlayerStructure: true,
+      Box: new THREE.Box3(
+        new THREE.Vector3(MinX, 0, MinZ),
+        new THREE.Vector3(MaxX, this.WallHeight, MaxZ)
+      )
     })
   }
 
@@ -284,11 +296,22 @@ export class BackroomsGenerator {
         const CenterZ = Z * this.CellSize + (this.Random() > 0.5 ? 1.7 : -1.7)
         Positions.push({ X: CenterX, Z: CenterZ })
 
+        const MinX = CenterX - 0.26
+        const MaxX = CenterX + 0.26
+        const MinZ = CenterZ - 0.26
+        const MaxZ = CenterZ + 0.26
+
         this.Colliders.push({
-          MinX: CenterX - 0.26,
-          MaxX: CenterX + 0.26,
-          MinZ: CenterZ - 0.26,
-          MaxZ: CenterZ + 0.26
+          MinX,
+          MaxX,
+          MinZ,
+          MaxZ,
+          Type: "Column",
+          PrecisePlayerStructure: true,
+          Box: new THREE.Box3(
+            new THREE.Vector3(MinX, 0, MinZ),
+            new THREE.Vector3(MaxX, this.WallHeight, MaxZ)
+          )
         })
       }
     }
@@ -347,7 +370,7 @@ export class BackroomsGenerator {
   }
 
   CreateLightPool() {
-    const LightCount = 4
+    const LightCount = 5
 
     for (let I = 0; I < LightCount; I += 1) {
       const Light = new THREE.PointLight(0xffeaa1, 0, 13, 2)
@@ -415,13 +438,13 @@ export class BackroomsGenerator {
     this.ShadowTarget = new THREE.Object3D()
     this.Group.add(this.ShadowTarget)
 
-    const Light = new THREE.SpotLight(0xffe7a0, 2.7, 15, Math.PI / 3.25, 0.58, 1.8)
+    const Light = new THREE.SpotLight(0xffe7a0, 3.0, 16, Math.PI / 3.1, 0.62, 1.75)
     Light.castShadow = true
     Light.visible = false
     Light.target = this.ShadowTarget
     Light.shadow.mapSize.set(512, 512)
     Light.shadow.camera.near = 0.2
-    Light.shadow.camera.far = 15
+    Light.shadow.camera.far = 16
     Light.shadow.bias = -0.00035
     Light.shadow.normalBias = 0.035
     this.Group.add(Light)
