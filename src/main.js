@@ -127,7 +127,7 @@ Scene.add(ExitGroup)
 
 const EntityPosition = PickOpenCell(50)
 const Hunter = new Entity(Scene, EntityPosition, World, {
-  OnShift: () => Audio.PlayShift()
+  OnShift: Form => Audio.PlayShift(Form)
 })
 
 let NearestInteractable = null
