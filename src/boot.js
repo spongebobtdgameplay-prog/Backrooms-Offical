@@ -1,4 +1,4 @@
-const GameVersion = "0.2.1"
+const GameVersion = "0.2.2"
 const CacheToken = new URL(import.meta.url).searchParams.get("cb") || Date.now().toString(36)
 const StartButton = document.getElementById("StartButton")
 const StartButtonText = document.getElementById("StartButtonText")
