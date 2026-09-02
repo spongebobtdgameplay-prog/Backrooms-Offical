@@ -370,3 +370,92 @@ canvas {
     right: 18px;
   }
 }
+
+
+#Game::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 46%, rgba(48, 41, 16, 0.14) 78%, rgba(22, 18, 7, 0.28) 100%);
+}
+
+#StartScreen {
+  color: #292511;
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 247, 173, 0.5), transparent 30%),
+    linear-gradient(110deg, rgba(57, 51, 20, 0.08), rgba(54, 48, 18, 0.3)),
+    repeating-linear-gradient(90deg, rgba(87, 77, 28, 0.055) 0 2px, transparent 2px 24px),
+    #c8bb61;
+}
+
+#StartScreen::before {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(71, 62, 22, 0.045) 23px 25px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 245, 155, 0.035) 31px 32px);
+}
+
+#StartScreen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 48%, rgba(37, 31, 9, 0.28) 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%, rgba(39,32,8,0.09));
+}
+
+#StartScreen .MenuNoise {
+  opacity: 0.18;
+  background-image: repeating-linear-gradient(0deg, rgba(38, 32, 10, 0.045) 0 1px, transparent 1px 4px);
+}
+
+#StartScreen .MenuTop,
+#StartScreen .MenuFooter {
+  color: rgba(43, 38, 16, 0.58);
+}
+
+#StartScreen .MenuContent {
+  z-index: 2;
+}
+
+#StartScreen .MenuIndex {
+  color: rgba(49, 42, 15, 0.67);
+  border-color: rgba(49, 42, 15, 0.42);
+}
+
+#StartScreen .MenuContent h1 {
+  max-width: 850px;
+  color: #27230f;
+  font-size: clamp(66px, 10vw, 138px);
+  letter-spacing: -0.07em;
+  text-shadow: 0 1px 0 rgba(255, 247, 174, 0.22);
+}
+
+#StartScreen .MenuContent p {
+  color: rgba(43, 37, 13, 0.72);
+  font-weight: 600;
+}
+
+#StartScreen #StartButton {
+  color: #2a2510;
+  border-top-color: rgba(45, 39, 14, 0.56);
+  border-bottom-color: rgba(45, 39, 14, 0.25);
+}
+
+#StartScreen #StartButton:hover {
+  background: rgba(47, 40, 14, 0.08);
+}
+
+#StartScreen #LoadStatus {
+  color: rgba(45, 39, 14, 0.48);
+}
+
+#Hud::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(248, 229, 127, 0.035), transparent 35%);
+}
