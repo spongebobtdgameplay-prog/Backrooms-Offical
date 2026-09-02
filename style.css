@@ -378,7 +378,7 @@ canvas {
   inset: 0;
   z-index: 7;
   pointer-events: none;
-  background: radial-gradient(circle at center, transparent 46%, rgba(48, 41, 16, 0.14) 78%, rgba(22, 18, 7, 0.28) 100%);
+  background: radial-gradient(circle at center, transparent 66%, rgba(48, 41, 16, 0.045) 86%, rgba(22, 18, 7, 0.09) 100%);
 }
 
 #StartScreen {
@@ -457,5 +457,5 @@ canvas {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(248, 229, 127, 0.035), transparent 35%);
+  background: linear-gradient(180deg, rgba(255, 239, 151, 0.018), transparent 36%);
 }
